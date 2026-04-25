@@ -7,9 +7,10 @@ import { Menu, X, User, CalendarDays, LogOut, ChevronDown, LayoutDashboard, Sear
 import { useAuth } from '@/contexts/AuthContext'
 
 const NAV_LINKS = [
-  { href: '/',           label: 'Bosh sahifa',   icon: Home },
-  { href: '/categories', label: 'Kategoriyalar', icon: Grid3X3 },
-  { href: '/search',     label: 'Qidirish',      icon: Search },
+  { href: '#categories', label: 'Kategoriyalar', icon: Grid3X3 },
+  { href: '#businesses', label: 'Bizneslar', icon: LayoutDashboard },
+  { href: '#how', label: 'Qanday ishlaydi', icon: Search },
+  { href: '#why', label: 'Nima uchun biz?', icon: Search },
 ]
 
 export default function Navbar() {
@@ -17,7 +18,7 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
-  const { user, loading, signOut } = useAuth()
+  const { user, profileRole, loading, signOut } = useAuth()
 
   useEffect(() => {
     function handler(e: MouseEvent) {
@@ -37,7 +38,7 @@ export default function Navbar() {
   return (
     <>
       <header
-        className="sticky top-0 z-50"
+        className="sticky top-0 z-50 w-full"
         style={{
           background: 'rgba(248,247,255,.88)',
           backdropFilter: 'blur(20px)',
@@ -45,18 +46,17 @@ export default function Navbar() {
           borderBottom: '1px solid var(--border-light)',
         }}
       >
-        <div className="max-w-6xl mx-auto px-5">
+        <div className="w-full px-[32px] max-md:px-[20px]">
           <div className="flex items-center justify-between gap-4" style={{ height: 64 }}>
 
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2.5 shrink-0">
+            <Link href="/" className="flex items-center gap-[10px] shrink-0">
               <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-black text-base"
-                style={{ background: 'linear-gradient(135deg, var(--primary), var(--accent))' }}
-              >B</div>
-              <span className="font-heading font-bold text-lg">
-                <span style={{ color: 'var(--text-primary)' }}>Bron</span>
-                <span style={{ color: 'var(--primary)' }}>Uz</span>
+                className="w-[36px] h-[36px] rounded-[10px] flex items-center justify-center text-white text-[18px] font-black font-heading"
+                style={{ background: 'linear-gradient(135deg, #4F46E5, #7C3AED)' }}
+              >⚡</div>
+              <span className="font-heading font-bold text-[18px]" style={{ color: 'var(--text-primary)' }}>
+                Super<span style={{ color: '#4F46E5' }}>App</span>
               </span>
             </Link>
 
@@ -93,22 +93,13 @@ export default function Navbar() {
             </nav>
 
             {/* Desktop actions */}
-            <div className="hidden md:flex items-center gap-3">
-              <Link
-                href="/business/register"
-                className="btn btn-primary"
-                style={{
-                  padding: '8px 18px',
-                  fontSize: '0.875rem',
-                  boxShadow: '0 2px 8px rgba(79,70,229,.3)',
-                }}
-              >
-                + Biznes qo'shish
-              </Link>
+            <div className="hidden md:flex items-center gap-[10px]">
+              <div className="relative w-[36px] h-[36px] rounded-full flex items-center justify-center cursor-pointer text-[16px] transition-all hover:border-[var(--primary)]" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                🔔
+                <div className="absolute -top-1 -right-1 w-[18px] h-[18px] rounded-full bg-[#EF4444] text-white text-[10px] font-bold flex items-center justify-center border-2" style={{ borderColor: 'var(--bg)' }}>2</div>
+              </div>
 
-              {loading ? (
-                <div className="w-32 h-9 rounded-xl animate-pulse" style={{ background: 'var(--surface-2)' }} />
-              ) : user ? (
+              {user ? (
                 <div className="relative" ref={dropdownRef}>
                   <button
                     onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -147,6 +138,7 @@ export default function Navbar() {
                       {[
                         { href: '/profile',   icon: CalendarDays,    label: 'Mening bronlarim' },
                         { href: '/dashboard', icon: LayoutDashboard, label: 'Biznes paneli' },
+                        ...(profileRole === 'admin' ? [{ href: '/admin', icon: LayoutDashboard, label: 'Admin paneli' }] : []),
                       ].map(item => (
                         <Link
                           key={item.href}
@@ -181,9 +173,14 @@ export default function Navbar() {
                   )}
                 </div>
               ) : (
-                <Link href="/auth/login" className="btn btn-primary" style={{ padding: '9px 20px', fontSize: '0.875rem' }}>
-                  <User size={15} /> Kirish
-                </Link>
+                <div className="flex items-center gap-[10px]">
+                  <Link href="/auth/login" className="px-[18px] py-[8px] rounded-[8px] border-[1.5px] border-solid border-[#E5E7EB] bg-transparent text-[14px] font-medium text-[#0F0F1A] hover:border-[#4F46E5] hover:text-[#4F46E5] transition-all">
+                    Kirish
+                  </Link>
+                  <Link href="/auth/register" className="px-[20px] py-[9px] rounded-[8px] border-none text-white text-[14px] font-semibold transition-all hover:-translate-y-px hover:shadow-[0_4px_16px_rgba(79,70,229,0.4)]" style={{ background: 'linear-gradient(135deg, #4F46E5, #7C3AED)', boxShadow: '0 2px 8px rgba(79,70,229,0.3)' }}>
+                    Ro'yxatdan o'tish
+                  </Link>
+                </div>
               )}
             </div>
 
@@ -238,6 +235,7 @@ export default function Navbar() {
                   {[
                     { href: '/profile',   icon: CalendarDays,    label: 'Mening bronlarim' },
                     { href: '/dashboard', icon: LayoutDashboard, label: 'Biznes paneli' },
+                    ...(profileRole === 'admin' ? [{ href: '/admin', icon: LayoutDashboard, label: 'Admin paneli' }] : []),
                   ].map(item => (
                     <Link
                       key={item.href}

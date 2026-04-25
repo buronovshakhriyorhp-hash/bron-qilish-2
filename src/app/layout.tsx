@@ -47,24 +47,25 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="uz" className={`${sora.variable} ${dmSans.variable}`}>
-      <body className={`${dmSans.className} antialiased`}>
+      <body className={`${dmSans.className} antialiased bg-[#F3F4F8]`}>
         <AuthProvider>
-          <Navbar />
-          <main className="min-h-screen">
-            {children}
-          </main>
+          <div className="max-w-[1440px] mx-auto bg-white min-h-screen shadow-[0_0_40px_rgba(0,0,0,0.05)] flex flex-col relative">
+            <Navbar />
+            <main className="flex-1">
+              {children}
+            </main>
 
           {/* ── FOOTER ── */}
-          <footer style={{ background: '#0F0F1A' }} className="text-white pt-16 pb-8">
-            <div className="max-w-6xl mx-auto px-6">
-              <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr] gap-12 mb-12">
+          <footer style={{ background: '#0F0F1A' }} className="text-white pt-[60px] pb-[32px] px-[80px] max-lg:px-[40px] max-md:px-[20px] w-full">
+            <div className="w-full">
+              <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr] gap-[48px] mb-[48px]">
                 {/* Brand */}
                 <div>
-                  <div className="flex items-center gap-2.5 mb-4">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-600 to-accent-600 flex items-center justify-center text-white font-black text-lg">
-                      B
+                  <div className="flex items-center gap-[10px] mb-[16px]">
+                    <div className="w-[36px] h-[36px] rounded-[10px] flex items-center justify-center text-white text-[18px] font-black font-heading" style={{ background: 'linear-gradient(135deg, #4F46E5, #7C3AED)' }}>
+                      ⚡
                     </div>
-                    <span className="font-heading font-bold text-xl text-white">BronUz</span>
+                    <span className="font-heading font-bold text-[18px] text-white">SuperApp</span>
                   </div>
                   <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>
                     Toshkentdagi barcha xizmatlarni bitta platformada birlashtirgan bron tizimi. Vaqtingizni biz bilan tejang.
@@ -141,7 +142,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 </div>
               </div>
             </div>
-          </footer>
+            </footer>
+          </div>
 
           <Toaster
             position="top-center"

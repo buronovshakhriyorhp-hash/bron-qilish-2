@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import Script from 'next/script'
 import { MapPin, Star, Navigation, Loader2, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import type { Business, Category } from '@/types'
@@ -36,6 +37,7 @@ export default function NearbyPage() {
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [activeCategory, setActiveCategory] = useState('all')
   const [locationName, setLocationName] = useState<string>('Aniqlanmoqda...')
+  const [mapLoaded, setMapLoaded] = useState(false)
 
   const loadBusinesses = useCallback(async (category: string) => {
     setLoading(true)
@@ -97,6 +99,10 @@ export default function NearbyPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
+      <Script 
+        src={`https://api-maps.yandex.ru/2.1/?apikey=${process.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY || ''}&lang=uz_UZ`}
+        onReady={() => setMapLoaded(true)}
+      />
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
@@ -235,14 +241,79 @@ export default function NearbyPage() {
         </div>
       )}
 
-      {/* Map placeholder */}
-      <div className="mt-6 bg-slate-100 rounded-2xl overflow-hidden">
-        <div className="h-48 flex flex-col items-center justify-center text-slate-400 text-sm gap-2">
-          <span className="text-3xl">🗺️</span>
-          <span>Yandex Maps xaritasi</span>
-          <span className="text-xs text-slate-300">YANDEX_MAPS_API_KEY .env ga qo'shilgandan keyin ko'rinadi</span>
-        </div>
-      </div>
+      {/* Yandex Maps Area */}
+      <YandexMapView businesses={sortedBusinesses} userCoords={userCoords} mapLoaded={mapLoaded} />
     </div>
   )
+}
+
+function YandexMapView({ businesses, userCoords, mapLoaded }: { businesses: Business[], userCoords: {lat: number, lng: number} | null, mapLoaded: boolean }) {
+  useEffect(() => {
+    if (!mapLoaded || !(window as any).ymaps) return;
+
+    let map: any = null;
+
+    (window as any).ymaps.ready(() => {
+      const container = document.getElementById('ymap');
+      if (!container || container.innerHTML !== '') return;
+
+      const centerLat = userCoords ? userCoords.lat : 41.2995;
+      const centerLng = userCoords ? userCoords.lng : 69.2401;
+
+      map = new (window as any).ymaps.Map('ymap', {
+        center: [centerLat, centerLng],
+        zoom: 13,
+        controls: ['zoomControl', 'fullscreenControl']
+      });
+
+      if (userCoords) {
+        const userMarker = new (window as any).ymaps.Placemark(
+          [userCoords.lat, userCoords.lng],
+          { hintContent: 'Sizning joylashuvingiz' },
+          { preset: 'islands#redCircleDotIcon' }
+        );
+        map.geoObjects.add(userMarker);
+      }
+
+      businesses.forEach(biz => {
+        if (biz.latitude && biz.longitude) {
+          const bizMarker = new (window as any).ymaps.Placemark(
+            [biz.latitude, biz.longitude],
+            {
+              hintContent: biz.name,
+              balloonContent: `
+                <div style="padding: 10px; min-width: 180px; font-family: sans-serif;">
+                  <h4 style="font-weight: 700; margin-bottom: 4px; font-size: 14px; color: #1e293b;">${biz.name}</h4>
+                  <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">${biz.address || ''}</p>
+                  <a href="/business/${biz.id}" target="_blank" style="display: block; text-align: center; background: #2563eb; color: white; padding: 8px 12px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: 600;">Batafsil</a>
+                </div>
+              `
+            },
+            { preset: 'islands#blueDotIcon' }
+          );
+          map.geoObjects.add(bizMarker);
+        }
+      });
+    });
+
+    return () => {
+      if (map && typeof map.destroy === 'function') {
+        map.destroy();
+      }
+      const container = document.getElementById('ymap');
+      if (container) container.innerHTML = '';
+    };
+  }, [mapLoaded, businesses, userCoords]);
+
+  return (
+    <div className="mt-6 bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 shadow-sm relative">
+      {!mapLoaded && (
+        <div className="h-96 flex flex-col items-center justify-center text-slate-400 bg-slate-50">
+          <Loader2 size={24} className="animate-spin mb-3 text-blue-500" />
+          <p className="text-sm font-medium">Xarita yuklanmoqda...</p>
+        </div>
+      )}
+      <div id="ymap" className="w-full h-96" style={{ visibility: mapLoaded ? 'visible' : 'hidden' }} />
+    </div>
+  );
 }

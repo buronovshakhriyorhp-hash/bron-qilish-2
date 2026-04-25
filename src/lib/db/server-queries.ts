@@ -3,6 +3,19 @@ import type { Business, Category, Booking } from '@/types'
 
 const ITEMS_PER_PAGE = 12
 
+function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371
+  const dLat = ((lat2 - lat1) * Math.PI) / 180
+  const dLon = ((lon2 - lon1) * Math.PI) / 180
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2)
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
 export async function getCategories(): Promise<Category[]> {
   const supabase = createClient()
   const { data, error } = await supabase
@@ -86,12 +99,14 @@ export async function searchBusinessesServer(
     district?: string
     categorySlug?: string
     minRating?: number
-    sortBy?: 'rating' | 'reviews'
+    sortBy?: 'rating' | 'reviews' | 'distance'
+    userLat?: number
+    userLng?: number
     page?: number
   } = {}
 ): Promise<{ businesses: Business[]; total: number }> {
   const supabase = createClient()
-  const { district, categorySlug, minRating, sortBy = 'rating', page = 1 } = options
+  const { district, categorySlug, minRating, sortBy = 'rating', userLat, userLng, page = 1 } = options
   const from = (page - 1) * ITEMS_PER_PAGE
   const to = from + ITEMS_PER_PAGE - 1
 
@@ -109,9 +124,35 @@ export async function searchBusinessesServer(
     q = q.eq('categories.slug', categorySlug)
   }
 
+  // Agar 'distance' so'ralsa va foydalanuvchi joylashuvi aniq bo'lsa
+  if (sortBy === 'distance' && userLat && userLng) {
+    // Ma'lumotlarni to'liq (yoki max 200 ta) olamiz, chunki masofani JS da hisoblaymiz
+    const { data, error } = await q.limit(200)
+
+    if (error) {
+      console.error('searchBusinessesServer error:', error)
+      return { businesses: [], total: 0 }
+    }
+
+    const allBusinesses = data || []
+
+    allBusinesses.sort((a, b) => {
+      if (!a.latitude || !a.longitude) return 1
+      if (!b.latitude || !b.longitude) return -1
+      const da = distanceKm(userLat, userLng, a.latitude, a.longitude)
+      const db = distanceKm(userLat, userLng, b.latitude, b.longitude)
+      return da - db
+    })
+
+    const count = allBusinesses.length
+    const paginated = allBusinesses.slice(from, to + 1)
+
+    return { businesses: paginated, total: count }
+  }
+
   if (sortBy === 'rating') {
     q = q.order('rating', { ascending: false })
-  } else {
+  } else if (sortBy === 'reviews') {
     q = q.order('review_count', { ascending: false })
   }
 

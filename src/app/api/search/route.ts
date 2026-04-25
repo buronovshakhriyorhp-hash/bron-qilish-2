@@ -16,8 +16,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Noto\'g\'ri parametrlar', details: parsed.error.flatten() }, { status: 400 })
   }
 
-  const { q, district, category, minRating, sortBy, page } = parsed.data
-  const result = await searchBusinessesServer(q, { district, categorySlug: category, minRating, sortBy, page })
+  const { q, district, category, minRating, sortBy, page, userLat, userLng } = parsed.data
+  const result = await searchBusinessesServer(q, { district, categorySlug: category, minRating, sortBy, page, userLat, userLng })
 
   return NextResponse.json(result, {
     headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' },

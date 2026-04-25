@@ -5,8 +5,10 @@ export const searchSchema = z.object({
   district: z.string().max(50).optional(),
   category: z.string().max(50).optional(),
   minRating: z.coerce.number().min(0).max(5).optional(),
-  sortBy: z.enum(['rating', 'reviews']).optional().default('rating'),
+  sortBy: z.enum(['rating', 'reviews', 'distance']).optional().default('rating'),
   page: z.coerce.number().min(1).max(100).optional().default(1),
+  userLat: z.coerce.number().optional(),
+  userLng: z.coerce.number().optional(),
 })
 
 export const businessRegisterSchema = z.object({

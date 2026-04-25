@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 interface AuthContextType {
   user: User | null
   session: Session | null
+  profileRole: string | null
   loading: boolean
   signOut: () => Promise<void>
 }
@@ -14,22 +15,34 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
+  profileRole: null,
   loading: true,
-  signOut: async () => {},
+  signOut: async () => { },
 })
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
+  const [profileRole, setProfileRole] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
   useEffect(() => {
+    const fetchRole = async (userId: string) => {
+      const { data } = await supabase.from('profiles').select('role').eq('id', userId).single()
+      setProfileRole(data?.role ?? null)
+    }
+
     // Mavjud sessiyani olish
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
-      setLoading(false)
+      if (session?.user) {
+        fetchRole(session.user.id).finally(() => setLoading(false))
+      } else {
+        setProfileRole(null)
+        setLoading(false)
+      }
     })
 
     // Auth o'zgarishlarini kuzatish
@@ -37,7 +50,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (_event, session) => {
         setSession(session)
         setUser(session?.user ?? null)
-        setLoading(false)
+        if (session?.user) {
+          fetchRole(session.user.id)
+        } else {
+          setProfileRole(null)
+          setLoading(false)
+        }
       }
     )
 
@@ -48,11 +66,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut()
     setUser(null)
     setSession(null)
+    setProfileRole(null)
     window.location.href = '/'
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut }}>
+    <AuthContext.Provider value={{ user, session, profileRole, loading, signOut }}>
       {children}
     </AuthContext.Provider>
   )

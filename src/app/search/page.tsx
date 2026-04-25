@@ -30,18 +30,19 @@ function SearchContent() {
   const [category, setCategory] = useState('')
   const [minRating, setMinRating] = useState(0)
   const [showFilters, setShowFilters] = useState(false)
-  const [sortBy, setSortBy] = useState<'rating' | 'reviews'>('rating')
+  const [sortBy, setSortBy] = useState<'rating' | 'reviews' | 'distance'>('rating')
   const [page, setPage] = useState(1)
 
   const [results, setResults] = useState<Business[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [userCoords, setUserCoords] = useState<{lat: number, lng: number} | null>(null)
 
   const totalPages = Math.ceil(total / ITEMS_PER_PAGE)
   const activeFiltersCount = [district, category, minRating > 0].filter(Boolean).length
 
-  const fetchResults = useCallback(async (q: string, d: string, cat: string, rating: number, sort: string, pg: number) => {
+  const fetchResults = useCallback(async (q: string, d: string, cat: string, rating: number, sort: string, pg: number, coords: {lat: number, lng: number} | null) => {
     setLoading(true)
     setError(null)
     try {
@@ -52,6 +53,10 @@ function SearchContent() {
       if (rating > 0) params.set('minRating', String(rating))
       params.set('sortBy', sort)
       params.set('page', String(pg))
+      if (sort === 'distance' && coords) {
+        params.set('userLat', String(coords.lat))
+        params.set('userLng', String(coords.lng))
+      }
 
       const res = await fetch(`/api/search?${params}`)
       if (!res.ok) throw new Error('Qidiruv xatosi')
@@ -70,8 +75,30 @@ function SearchContent() {
   const debouncedFetch = useDebouncedCallback(fetchResults, 350)
 
   useEffect(() => {
-    debouncedFetch(query, district, category, minRating, sortBy, page)
-  }, [query, district, category, minRating, sortBy, page, debouncedFetch])
+    debouncedFetch(query, district, category, minRating, sortBy, page, userCoords)
+  }, [query, district, category, minRating, sortBy, page, userCoords, debouncedFetch])
+
+  const handleSortChange = (s: 'rating' | 'reviews' | 'distance') => {
+    if (s === 'distance' && !userCoords) {
+      if (navigator.geolocation) {
+        setLoading(true);
+        navigator.geolocation.getCurrentPosition(
+          pos => {
+            setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+            setSortBy(s);
+            setPage(1);
+          },
+          err => {
+            setError("Joylashuvni aniqlab bo'lmadi. Iltimos, joylashuvga ruxsat bering.");
+            setLoading(false);
+          }
+        );
+        return;
+      }
+    }
+    setSortBy(s);
+    setPage(1);
+  }
 
   const clearFilters = () => {
     setDistrict('')
@@ -210,17 +237,17 @@ function SearchContent() {
             )}
           </div>
           <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-            {(['rating', 'reviews'] as const).map(s => (
+            {(['distance', 'rating', 'reviews'] as const).map(s => (
               <button
                 key={s}
-                onClick={() => { setSortBy(s); setPage(1) }}
+                onClick={() => handleSortChange(s)}
                 className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
                 style={sortBy === s
                   ? { background: 'linear-gradient(135deg, var(--brand), var(--accent))', color: 'white' }
                   : { color: 'var(--text-muted)' }
                 }
               >
-                {s === 'rating' ? '⭐ Reyting' : '💬 Izohlar'}
+                {s === 'distance' ? '📍 Menga yaqin' : s === 'rating' ? '⭐ Reyting' : '💬 Izohlar'}
               </button>
             ))}
           </div>
